@@ -1,0 +1,128 @@
+#include <iostream>
+#include <queue>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <iomanip>
+
+using namespace std;
+using namespace chrono;
+
+// Structure for a Task
+struct Task {
+    string name;
+    system_clock::time_point deadline;
+    int durationSeconds;  // Duration from start to deadline for graphical representation
+};
+
+// Function to display a single task
+void displayTask(const Task& task, time_t currentTime) {
+    time_t deadlineTime = system_clock::to_time_t(task.deadline);
+    cout << "Task: " << task.name 
+         << " | Deadline: " << put_time(localtime(&deadlineTime), "%Y-%m-%d %H:%M:%S") 
+         << " | Time Remaining: " << difftime(deadlineTime, currentTime) << " seconds\n";
+}
+
+// Function to notify about task deadlines
+void notify(const Task& task) {
+    cout << "\n[ALERT] Task \"" << task.name << "\" has reached its deadline!\n\n";
+}
+
+// Function to add tasks to the schedule
+void addTasks(queue<Task>& taskQueue) {
+    int numTasks;
+    cout << "Enter number of tasks to schedule: ";
+    cin >> numTasks;
+    
+    for (int i = 0; i < numTasks; i++) {
+        string taskName;
+        int durationMinutes;  // Change this variable to store duration in minutes
+        
+        cout << "Enter task name: ";
+        cin.ignore();
+        getline(cin, taskName);
+        cout << "Enter time in minutes until deadline: ";  // Updated prompt
+        cin >> durationMinutes;
+        
+        Task task;
+        task.name = taskName;
+        task.deadline = system_clock::now() + minutes(durationMinutes);  // Calculate deadline in minutes
+        task.durationSeconds = durationMinutes * 60;  // Convert minutes to seconds for graphical representation
+        
+        taskQueue.push(task);
+        cout << "Task \"" << task.name << "\" scheduled with a deadline in " << durationMinutes << " minutes.\n";
+    }
+}
+
+// Function to visually represent the scheduled tasks
+void displayGraphicalQueue(const queue<Task>& taskQueue) {
+    cout << "\nGraphical Representation of Scheduled Tasks:\n";
+    cout << "---------------------------------------------\n";
+    
+    queue<Task> copyQueue = taskQueue;
+    const int maxBarLength = 50;  // Maximum length of the bar for display
+    
+    while (!copyQueue.empty()) {
+        Task task = copyQueue.front();
+        copyQueue.pop();
+        
+        int barLength = (task.durationSeconds > maxBarLength) ? maxBarLength : task.durationSeconds;  // Scale to max bar length
+        
+        cout << setw(10) << task.name << " | ";
+        
+        // Display the progress bar for the task
+        for (int i = 0; i < barLength; i++) {
+            cout << "=";
+        }
+        
+        cout << " (" << task.durationSeconds << "s)\n";
+    }
+    
+    cout << "---------------------------------------------\n";
+}
+
+// Function to display tasks in the queue with remaining time
+void displaySchedule(const queue<Task>& taskQueue) {
+    cout << "\nScheduled Tasks:\n";
+    cout << "---------------------------\n";
+    
+    auto currentTime = system_clock::to_time_t(system_clock::now());
+    queue<Task> copyQueue = taskQueue;
+    
+    while (!copyQueue.empty()) {
+        Task task = copyQueue.front();
+        copyQueue.pop();
+        displayTask(task, currentTime);
+    }
+    cout << "---------------------------\n";
+}
+
+int main() {
+    queue<Task> taskQueue;
+    
+    // Add tasks and display the initial graphical representation
+    addTasks(taskQueue);
+    displayGraphicalQueue(taskQueue);
+    
+    cout << "\nStarting the task countdown...\n";
+    
+    // Start a loop to check for task deadlines
+    while (!taskQueue.empty()) {
+        auto now = system_clock::now();  // Corrected line
+        
+        Task currentTask = taskQueue.front();
+        if (now >= currentTask.deadline) {
+            notify(currentTask);
+            taskQueue.pop();
+        }
+        
+        // Redisplay the schedule
+        system("clear"); // or system("cls") for Windows
+        displaySchedule(taskQueue);
+        
+        this_thread::sleep_for(seconds(1));  // Check every second
+    }
+    
+    cout << "All tasks completed.\n";
+    return 0;
+}

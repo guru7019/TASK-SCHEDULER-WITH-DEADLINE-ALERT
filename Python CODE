@@ -1,0 +1,85 @@
+import time
+from datetime import datetime, timedelta
+from collections import deque
+
+# Class for a Task
+class Task:
+    def __init__(self, name, duration_minutes):
+        self.name = name
+        self.deadline = datetime.now() + timedelta(minutes=duration_minutes)
+        self.duration_seconds = duration_minutes * 60  # Convert minutes to seconds
+
+# Function to display a single task
+def display_task(task):
+    current_time = datetime.now()
+    time_remaining = (task.deadline - current_time).total_seconds()
+    deadline_str = task.deadline.strftime("%Y-%m-%d %H:%M:%S")
+    print(f"Task: {task.name} | Deadline: {deadline_str} | Time Remaining: {time_remaining:.0f} seconds")
+
+# Function to notify about task deadlines
+def notify(task):
+    print(f"\n[ALERT] Task \"{task.name}\" has reached its deadline!\n")
+
+# Function to add tasks to the schedule
+def add_tasks(task_queue):
+    num_tasks = int(input("Enter number of tasks to schedule: "))
+    
+    for _ in range(num_tasks):
+        task_name = input("Enter task name: ")
+        duration_minutes = int(input("Enter time in minutes until deadline: "))
+        
+        task = Task(task_name, duration_minutes)
+        task_queue.append(task)
+        print(f"Task \"{task.name}\" scheduled with a deadline in {duration_minutes} minutes.")
+
+# Function to visually represent the scheduled tasks
+def display_graphical_queue(task_queue):
+    print("\nGraphical Representation of Scheduled Tasks:")
+    print("---------------------------------------------")
+    
+    max_bar_length = 50  # Maximum length of the bar for display
+    
+    for task in task_queue:
+        bar_length = min(task.duration_seconds, max_bar_length)  # Scale to max bar length
+        print(f"{task.name:>10} | {'=' * bar_length} ({task.duration_seconds:.0f}s)")
+    
+    print("---------------------------------------------")
+
+# Function to display tasks in the queue with remaining time
+def display_schedule(task_queue):
+    print("\nScheduled Tasks:")
+    print("---------------------------")
+    
+    for task in task_queue:
+        display_task(task)
+    
+    print("---------------------------")
+
+def main():
+    task_queue = deque()
+    
+    # Add tasks and display the initial graphical representation
+    add_tasks(task_queue)
+    display_graphical_queue(task_queue)
+    
+    print("\nStarting the task countdown...\n")
+    
+    # Start a loop to check for task deadlines
+    while task_queue:
+        now = datetime.now()
+        
+        current_task = task_queue[0]
+        if now >= current_task.deadline:
+            notify(current_task)
+            task_queue.popleft()  # Remove the task from the queue
+            
+        # Redisplay the schedule
+        print("\033c", end="")  # Clear the console (Linux/Unix)
+        display_schedule(task_queue)
+        
+        time.sleep(1)  # Check every second
+    
+    print("All tasks completed.")
+
+if __name__ == "__main__":
+    main()
